@@ -1,0 +1,28 @@
+name: Daily Motivation Email
+
+on:
+  schedule:
+    # 8:00 AM Mountain Time (3:00 PM UTC)
+    - cron: '0 15 * * *'
+  workflow_dispatch: # Allow manual trigger for testing
+
+jobs:
+  send-email:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Send motivation email
+        env:
+          GMAIL_ADDRESS: ${{ secrets.GMAIL_ADDRESS }}
+          GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
+          EMAIL_RECIPIENT: ${{ secrets.EMAIL_RECIPIENT }}
+          START_DATE: ${{ secrets.START_DATE }}
+        run: python send_motivation.py
