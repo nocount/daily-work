@@ -5,6 +5,7 @@ import json
 import os
 import random
 import smtplib
+import urllib.request
 from datetime import datetime
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
@@ -19,9 +20,34 @@ def load_quotes():
 
 
 def get_random_quote(quotes):
-    """Select a random quote."""
+    """Select a random quote from local collection."""
     quote = random.choice(quotes)
     return quote["text"], quote["category"]
+
+
+def fetch_api_quote():
+    """Fetch a random quote from ZenQuotes API."""
+    url = "https://zenquotes.io/api/random"
+    req = urllib.request.Request(url, headers={"User-Agent": "DailyMotivation/1.0"})
+    with urllib.request.urlopen(req, timeout=10) as response:
+        data = json.loads(response.read().decode())
+        quote_text = data[0]["q"]
+        author = data[0]["a"]
+        return f"{quote_text} - {author}", "api"
+
+
+def get_quote(local_quotes):
+    """Get a quote from either local collection or API (50/50 chance)."""
+    use_api = random.choice([True, False])
+
+    if use_api:
+        try:
+            return fetch_api_quote()
+        except Exception as e:
+            print(f"API fetch failed ({e}), using local quote")
+            return get_random_quote(local_quotes)
+    else:
+        return get_random_quote(local_quotes)
 
 
 def calculate_days_since_start():
@@ -38,7 +64,8 @@ def create_email_body(quote, category, days):
         "general": "Daily Motivation",
         "smoking": "Smoke-Free Journey",
         "alcohol": "Sobriety Strength",
-        "gaming": "Real Life Focus"
+        "gaming": "Real Life Focus",
+        "api": "Words of Wisdom"
     }
 
     label = category_labels.get(category, "Daily Motivation")
@@ -83,8 +110,8 @@ def send_email(subject, body):
 
 
 def main():
-    quotes = load_quotes()
-    quote, category = get_random_quote(quotes)
+    local_quotes = load_quotes()
+    quote, category = get_quote(local_quotes)
     days = calculate_days_since_start()
 
     subject = f"Day {days}: Your Daily Motivation"
