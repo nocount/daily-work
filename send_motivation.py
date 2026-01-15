@@ -36,20 +36,6 @@ def fetch_api_quote():
         return f"{quote_text} - {author}", "api"
 
 
-def get_quote(local_quotes):
-    """Get a quote from either local collection or API (50/50 chance)."""
-    use_api = random.choice([True, False])
-
-    if use_api:
-        try:
-            return fetch_api_quote()
-        except Exception as e:
-            print(f"API fetch failed ({e}), using local quote")
-            return get_random_quote(local_quotes)
-    else:
-        return get_random_quote(local_quotes)
-
-
 def calculate_days_since_start():
     """Calculate days since the journey started."""
     start_date_str = os.environ.get("START_DATE", "2025-01-15")
@@ -58,17 +44,16 @@ def calculate_days_since_start():
     return (today - start_date).days
 
 
-def create_email_body(quote, category, days):
-    """Create the email body with the quote and progress."""
+def create_email_body(local_quote, local_category, api_quote, days):
+    """Create the email body with both quotes and progress."""
     category_labels = {
         "general": "Daily Motivation",
         "smoking": "Smoke-Free Journey",
         "alcohol": "Sobriety Strength",
-        "gaming": "Real Life Focus",
-        "api": "Words of Wisdom"
+        "gaming": "Real Life Focus"
     }
 
-    label = category_labels.get(category, "Daily Motivation")
+    local_label = category_labels.get(local_category, "Daily Motivation")
 
     body = f"""
 Good morning!
@@ -77,9 +62,15 @@ Day {days} of your journey to a better life.
 
 ---
 
-{label}:
+{local_label}:
 
-"{quote}"
+"{local_quote}"
+
+---
+
+Words of Wisdom:
+
+"{api_quote}"
 
 ---
 
@@ -111,11 +102,17 @@ def send_email(subject, body):
 
 def main():
     local_quotes = load_quotes()
-    quote, category = get_quote(local_quotes)
+    local_quote, local_category = get_random_quote(local_quotes)
     days = calculate_days_since_start()
 
+    try:
+        api_quote, _ = fetch_api_quote()
+    except Exception as e:
+        print(f"API fetch failed ({e}), using second local quote")
+        api_quote, _ = get_random_quote(local_quotes)
+
     subject = f"Day {days}: Your Daily Motivation"
-    body = create_email_body(quote, category, days)
+    body = create_email_body(local_quote, local_category, api_quote, days)
 
     send_email(subject, body)
 
