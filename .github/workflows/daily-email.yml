@@ -3,7 +3,7 @@ name: Daily Motivation Email
 on:
   schedule:
     # 8:00 AM Mountain Time (3:00 PM UTC)
-    - cron: '0 15 * * *'
+    - cron: '30 14 * * *'
   workflow_dispatch: # Allow manual trigger for testing
 
 jobs:
