@@ -36,6 +36,40 @@ def fetch_api_quote():
         return f"{quote_text} - {author}", "api"
 
 
+def fetch_claude_quote():
+    """Generate an inspirational addiction recovery quote using Claude API."""
+    api_key = os.environ["ANTHROPIC_API_KEY"]
+    url = "https://api.anthropic.com/v1/messages"
+
+    prompt = (
+        "Generate a single short, powerful inspirational quote about overcoming addiction "
+        "and recovery. The quote should be original, hopeful, and encouraging. "
+        "Return ONLY the quote text itself, nothing else - no attribution, no quotation marks, "
+        "no explanation."
+    )
+
+    request_body = json.dumps({
+        "model": "claude-sonnet-4-20250514",
+        "max_tokens": 150,
+        "messages": [{"role": "user", "content": prompt}]
+    }).encode("utf-8")
+
+    req = urllib.request.Request(
+        url,
+        data=request_body,
+        headers={
+            "Content-Type": "application/json",
+            "x-api-key": api_key,
+            "anthropic-version": "2023-06-01"
+        }
+    )
+
+    with urllib.request.urlopen(req, timeout=15) as response:
+        data = json.loads(response.read().decode())
+        quote_text = data["content"][0]["text"].strip()
+        return quote_text
+
+
 def calculate_days_since_start():
     """Calculate days since the journey started."""
     start_date_str = os.environ.get("START_DATE", "2025-01-15")
@@ -44,8 +78,8 @@ def calculate_days_since_start():
     return (today - start_date).days
 
 
-def create_email_body(local_quote, local_category, api_quote, days):
-    """Create the email body with both quotes and progress."""
+def create_email_body(local_quote, local_category, api_quote, claude_quote, days):
+    """Create the email body with all three quotes and progress."""
     category_labels = {
         "general": "Daily Motivation",
         "smoking": "Smoke-Free Journey",
@@ -71,6 +105,12 @@ Day {days} of your journey to a better life.
 Words of Wisdom:
 
 "{api_quote}"
+
+---
+
+Recovery Insight:
+
+"{claude_quote}"
 
 ---
 
@@ -108,11 +148,17 @@ def main():
     try:
         api_quote, _ = fetch_api_quote()
     except Exception as e:
-        print(f"API fetch failed ({e}), using second local quote")
+        print(f"ZenQuotes API fetch failed ({e}), using second local quote")
         api_quote, _ = get_random_quote(local_quotes)
 
+    try:
+        claude_quote = fetch_claude_quote()
+    except Exception as e:
+        print(f"Claude API fetch failed ({e}), using fallback quote")
+        claude_quote = "Every step forward, no matter how small, is a victory worth celebrating."
+
     subject = f"Day {days}: Your Daily Motivation"
-    body = create_email_body(local_quote, local_category, api_quote, days)
+    body = create_email_body(local_quote, local_category, api_quote, claude_quote, days)
 
     send_email(subject, body)
 
