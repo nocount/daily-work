@@ -9,6 +9,8 @@ on:
 jobs:
   send-email:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
 
     steps:
       - name: Checkout repository
@@ -27,3 +29,11 @@ jobs:
           START_DATE: ${{ secrets.START_DATE }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
         run: python send_motivation.py
+
+      - name: Commit quote history
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add quote_history.json
+          git diff --staged --quiet || git commit -m "Update quote history"
+          git push
