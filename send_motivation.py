@@ -36,21 +36,58 @@ def fetch_api_quote():
         return f"{quote_text} - {author}", "api"
 
 
+def load_quote_history():
+    """Load previous Claude quotes from history file."""
+    history_path = Path(__file__).parent / "quote_history.json"
+    if history_path.exists():
+        with open(history_path, "r", encoding="utf-8") as f:
+            return json.load(f)
+    return []
+
+
+def save_quote_to_history(quote):
+    """Save a new quote to the history file."""
+    history_path = Path(__file__).parent / "quote_history.json"
+    history = load_quote_history()
+    history.append({
+        "text": quote,
+        "date": datetime.now().strftime("%Y-%m-%d")
+    })
+    # Keep only the last 30 quotes to prevent file from growing too large
+    history = history[-30:]
+    with open(history_path, "w", encoding="utf-8") as f:
+        json.dump(history, f, indent=2)
+
+
 def fetch_claude_quote():
     """Generate an inspirational addiction recovery quote using Claude API."""
     api_key = os.environ["ANTHROPIC_API_KEY"]
     url = "https://api.anthropic.com/v1/messages"
 
+    # Load recent quotes to provide context for variety
+    history = load_quote_history()
+    recent_quotes = [q["text"] for q in history[-5:]]
+
     prompt = (
-        "Generate a single short, powerful inspirational quote about overcoming addiction "
-        "and recovery. The quote should be original, hopeful, and encouraging. "
-        "Return ONLY the quote text itself, nothing else - no attribution, no quotation marks, "
+        "Generate an original, heartfelt message about overcoming addiction and recovery. "
+        "The message should be hopeful, encouraging, and meaningful - it can be a few sentences long. "
+        "Feel free to explore different angles: strength in vulnerability, the courage to change, "
+        "celebrating small victories, self-compassion, or the journey of healing. "
+        "Return ONLY the message text itself, nothing else - no attribution, no quotation marks, "
         "no explanation."
     )
 
+    if recent_quotes:
+        prompt += (
+            "\n\nFor variety, here are the most recent messages that were sent. "
+            "Please create something with a different tone, theme, or perspective:\n"
+        )
+        for i, q in enumerate(recent_quotes, 1):
+            prompt += f"\n{i}. \"{q}\""
+
     request_body = json.dumps({
         "model": "claude-sonnet-4-20250514",
-        "max_tokens": 150,
+        "max_tokens": 300,
         "messages": [{"role": "user", "content": prompt}]
     }).encode("utf-8")
 
@@ -67,6 +104,8 @@ def fetch_claude_quote():
     with urllib.request.urlopen(req, timeout=15) as response:
         data = json.loads(response.read().decode())
         quote_text = data["content"][0]["text"].strip()
+        # Save the new quote to history for future reference
+        save_quote_to_history(quote_text)
         return quote_text
 
 
