@@ -5,6 +5,7 @@ import json
 import os
 import random
 import smtplib
+import urllib.error
 import urllib.request
 from datetime import datetime
 from email.mime.text import MIMEText
@@ -101,12 +102,17 @@ def fetch_claude_quote():
         }
     )
 
-    with urllib.request.urlopen(req, timeout=15) as response:
-        data = json.loads(response.read().decode())
-        quote_text = data["content"][0]["text"].strip()
-        # Save the new quote to history for future reference
-        save_quote_to_history(quote_text)
-        return quote_text
+    try:
+        with urllib.request.urlopen(req, timeout=15) as response:
+            data = json.loads(response.read().decode())
+            quote_text = data["content"][0]["text"].strip()
+            # Save the new quote to history for future reference
+            save_quote_to_history(quote_text)
+            return quote_text
+    except urllib.error.HTTPError as e:
+        error_body = e.read().decode()
+        print(f"Claude API error {e.code}: {error_body}")
+        raise
 
 
 def calculate_days_since_start():
