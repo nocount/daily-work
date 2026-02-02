@@ -70,10 +70,12 @@ def fetch_claude_quote():
     recent_quotes = [q["text"] for q in history[-5:]]
 
     prompt = (
-        "Generate an original, heartfelt message about overcoming addiction and recovery. "
-        "The message should be hopeful, encouraging, and meaningful - it can be a few sentences long. "
-        "Feel free to explore different angles: strength in vulnerability, the courage to change, "
-        "celebrating small victories, self-compassion, or the journey of healing. "
+        "Generate a short, original message about overcoming addiction and recovery. "
+        "Keep the tone plain-spoken, honest, and grounded - like advice from someone who's been there. "
+        "Avoid flowery or poetic language. Be direct and practical. "
+        "It can be a few sentences long. "
+        "Different angles are fine: showing up on hard days, building new habits, dealing with setbacks, "
+        "asking for help, or just getting through today. "
         "Return ONLY the message text itself, nothing else - no attribution, no quotation marks, "
         "no explanation."
     )
